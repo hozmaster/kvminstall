@@ -2,6 +2,7 @@ from distutils.core import setup
 setup(
   name = 'kvm-install',
   packages = ['kvm-install'],
+  install_requires = ['PyYAML'],
   version = '0.1',
   description = 'Python helper script for virt-install(1)',
   author = 'Jason Callaway',
