@@ -38,30 +38,37 @@ class KVMInstall(object):
 
     def parse_config(self):
         """Parse home dir .config file"""
-        config_path = self.args.configfile
+
+        if self.args.configfile is None:
+            config_path = CONFIG_PATH
+        else:
+            config_path = self.args.configfile
         try:
-            # If the config file exists, parse it
-            if os.path.isfile(config_path):
-                config_string = open(config_path).read()
-                self.config = yaml.load(config_string)
-            else:
-                # Config file doesn't exist, let's create it
-                if config_path == CONFIG_PATH:
-                    os.makedirs(os.path.split(config_path)[0])
-                    # And while we're at it, let's set some defaults
-                    with open(config_path, 'w') as config_file:
-                        config_file.write('---\nvcpus: 1\nram: 1024\n' +
-                                          'disk: 10\ndomain: example.com\n' +
-                                          'network: default\nmac: 5c:e0:c5:c4:26\n' +
-                                          'type: linux\nvariant: rhel7\n')
-                    config_file.close()
-                    # Then we parse it like normal
-                    config_string = open(config_path).read()
-                    self.config = yaml.load(config_string)
+            # If the config file doesn't exist, let's create and populate it
+            if not os.path.isfile(config_path):
+                os.makedirs(os.path.split(config_path)[0])
+                with open(config_path, 'w') as config_file:
+                    config_file.write('---\n' +
+                                      'vcpus: 1\n' +
+                                      'ram: 1024\n' +
+                                      'disk: 10\n' +
+                                      'domain: example.com\n' +
+                                      'network: default\n' +
+                                      'mac: 5c:e0:c5:c4:26\n' +
+                                      'type: linux\n' +
+                                      'variant: rhel7\n')
         except Exception, e:
-            raise Exception('unable to read config file at ' + config_path +
-                            'exception: ' + str(e))
-        # Now iterate over the arguments to build the config
+            raise Exception('unable to create config file at ' + config_path + ': ' + str(e))
+
+        try:
+            # Now read and parse it
+            config_string = open(config_path).read()
+            self.config = yaml.load(config_string)
+        except Exception, e:
+            raise Exception('unable to read config file at ' + config_path + ': ' + str(e))
+
+        # Now iterate over the arguments to build the config.
+        # Remember, self.args is a Namespace.
         for k in self.args.__dict__:
             if self.args.__dict__[k] is not None:
                 self.config[k] = self.args.__dict__[k]
@@ -132,7 +139,7 @@ class KVMInstall(object):
             # This is a little big funky. I wanted to be sure we have only a-f,0-9, but the string.hexdigits
             # string includes a-f,A-F, so we have to convert to lower case and strip out duplicates
             hex_domain = ''.join(set(string.hexdigits.lower()))
-            new_hex = self.getrandom(hex_domain, 2)
+            new_hex = self.get_random(hex_domain, 2)
             generated_mac.join(':' + new_hex)
         return generated_mac
 
