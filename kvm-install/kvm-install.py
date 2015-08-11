@@ -19,7 +19,7 @@ __status__ = 'alpha'
 
 # TODO: add support for other platforms
 SUPPORTED_PLATFORMS = ['rhel', 'centos', 'fedora']
-CONFIG_PATH = '~/.config/kvm-install/config.yaml'
+CONFIG_PATH = os.path.expanduser('~') + '/.config/kvm-install/config.yaml'
 
 
 class KVMInstall(object):
@@ -43,6 +43,8 @@ class KVMInstall(object):
             config_path = CONFIG_PATH
         else:
             config_path = self.args.configfile
+        if self.args.verbose is True:
+            print '  using config file: ' + config_path
         try:
             # If the config file doesn't exist, let's create and populate it
             if not os.path.isfile(config_path):
@@ -74,13 +76,17 @@ class KVMInstall(object):
                 self.config[k] = self.args.__dict__[k]
 
     def run_command(self, command, stdout, stderr):
+        if self.args.verbose is True:
+            print '  running command: ' + ' '.join(command)
+            print '  stdout: ' + stdout
+            print '  stderr: ' + stderr
         out = open(stdout, 'a')
         err = open(stderr, 'a')
         exit_signal = subprocess.call(command, stdout=out, stderr=err)
         if exit_signal != 0:
             raise Exception('command failed with exit signal ' + str(exit_signal) + ': ' + ' '.join(command))
-        stdout.close()
-        stderr.close()
+        out.close()
+        err.close()
 
     def setup_lvm(self):
         """Setup the VMs root volume with LVM"""
@@ -124,7 +130,8 @@ class KVMInstall(object):
         tree = ET.parse(xmlfile)
         l = []
         for elem in tree.getiterator():
-            l.append(elem.get(element))
+            if elem.get(element) is not None:
+                l.append(elem.get(element))
         return l
 
     def get_mac_addresses(self):
@@ -133,15 +140,18 @@ class KVMInstall(object):
     def generate_mac(self, prefix):
         generated_mac = ''
         # Determine how long our prefix is
-        colons = prefix.count(':')
+        num_colons = prefix.count(':')
         # Add that number of hex substrings
-        for _ in range(5 - colons):
+        for _ in range(5 - num_colons):
             # This is a little big funky. I wanted to be sure we have only a-f,0-9, but the string.hexdigits
             # string includes a-f,A-F, so we have to convert to lower case and strip out duplicates
             hex_domain = ''.join(set(string.hexdigits.lower()))
+            print '+++ hex_domain: ' + hex_domain
             new_hex = self.get_random(hex_domain, 2)
-            generated_mac.join(':' + new_hex)
-        return generated_mac
+            print '+++ new_hex: ' + new_hex
+            generated_mac = generated_mac.join(':' + new_hex)
+        print '+++ generated_mac: ' + generated_mac
+        return self.config['mac'] + generated_mac
 
     def get_ip_addresses(self):
         return self.get_etree_elements(self.virsh_netdumpxml, 'ip')
@@ -158,7 +168,7 @@ class KVMInstall(object):
         start = re.sub('^\d{1,3}\.\d{1,3}\.\d{1,3}\.', '', ip_start)
         end = re.sub('^\d{1,3}\.\d{1,3}\.\d{1,3}\.', '', ip_end)
         first_three_octets = re.sub('\.\d{1,3}$', '', ip_start)
-        return first_three_octets + '.' + random.randint(int(start), int(end))
+        return first_three_octets + '.' + str(random.randint(int(start), int(end)))
 
     def setup_network(self):
         """Setup the virsh network settings for the VM"""
@@ -167,23 +177,34 @@ class KVMInstall(object):
 
         # TODO: Add IPv6 support
 
-        # First, find a new mac address
-        mac_addresses = self.get_mac_addresses()
-        new_mac = ''
-        good_mac = False
-        while good_mac is False:
-            new_mac = self.generate_mac(self.config['mac'])
-            if new_mac not in mac_addresses:
-                good_mac = True
+        try:
+            # First, find a new mac address
+            mac_addresses = self.get_mac_addresses()
+            print '+++ mac_addresses: ' + ' '.join(mac_addresses)
+            new_mac = ''
+            good_mac = False
+            while good_mac is False:
+                new_mac = self.generate_mac(self.config['mac'])
+                if new_mac not in mac_addresses:
+                    good_mac = True
+                    if self.args.verbose is True:
+                        print '  new mac found: ' + new_mac
+        except Exception, e:
+            raise Exception('setup_network failed to generate a new mac address: ' + str(e))
 
-        # Then find an IP address in range that doesn't already exist
-        ip_addresses = self.get_ip_addresses()
-        new_ip = ''
-        good_ip = False
-        while good_ip is False:
-            new_ip = self.generate_ip()
-            if new_ip not in ip_addresses:
-                good_ip = True
+        try:
+            # Then find an IP address in range that doesn't already exist
+            ip_addresses = self.get_ip_addresses()
+            new_ip = ''
+            good_ip = False
+            while good_ip is False:
+                new_ip = self.generate_ip()
+                if new_ip not in ip_addresses:
+                    good_ip = True
+                    if self.args.verbose is True:
+                        print '  new ip found: ' + new_ip
+        except Exception, e:
+            raise Exception('setup_network failed to generate a new ip address: ' + str(e))
 
         # Record the new IP for other functions' use
         self.config['new_ip'] = new_ip
@@ -197,18 +218,22 @@ class KVMInstall(object):
                    '--xml']
         host_xml = '"<host mac=\'' + new_mac + '\' name=\'' + self.config['name'] + '.' + self.config['domain'] + \
                    '\' ip=\'' + new_ip + '\'/>"'
+        command.append(host_xml)
+
+        print '+++ command: ' + ' '.join(command)
 
         # First, update the persistent config
         try:
-            self.run_command(command.append(host_xml).append('--config'), self.stdout, self.stderr)
+            config_command = command.append('--config')
+            self.run_command(config_command, self.stdout, self.stderr)
         except Exception, e:
-            raise e
+            raise Exception('virsh net-update --config failed: ' + str(e))
 
         # Now, update the current config
         try:
-            self.run_command(command.append(host_xml).append('--current'), self.stdout, self.stderr)
+            self.run_command(command.append('--current'), self.stdout, self.stderr)
         except Exception, e:
-            raise e
+            raise Exception('virsh net-update --current failed: ' + str(e))
 
     def update_etchosts(self):
         try:
@@ -272,14 +297,20 @@ class KVMInstall(object):
             raise Exception('unsupported platform: ' + platform.dist()[0])
 
         # Parse the config file and build our config object
+        if self.args.verbose is True:
+            print ' parsing config file'
         if self.args.configfile is None:
             self.args.configfile = CONFIG_PATH
         self.parse_config()
 
         # If we have both a clone and image config directive, prefer LVM
         if self.config.has_key('clone'):
+            if self.args.verbose is True:
+                print ' setting up lvm'
             self.setup_lvm()
         else:
+            if self.args.verbose is True:
+                print ' setting up image'
             if self.config.has_key('image'):
                 self.setup_image()
             else:
@@ -287,24 +318,32 @@ class KVMInstall(object):
 
         try:
             # Now set up the new network
+            if self.args.verbose is True:
+                print ' setting up network'
             self.setup_network()
         except Exception, e:
             raise Exception('setup network failed: ' + str(e))
 
         try:
             # Update /etc/hosts
+            if self.args.verbose is True:
+                print ' updating /etc/hosts'
             self.update_etchosts()
         except Exception, e:
             raise Exception('update /etc/hosts failed: ' + str(e))
 
         try:
             # Restart the dnsmasq service
+            if self.args.verbose is True:
+                print ' restarting dnsmasq'
             self.restart_dnsmasq()
         except Exception, e:
             raise Exception('restart dnsmasq failed: ' + str(e))
 
         try:
             # Finally, we can install the VM
+            if self.args.verbose is True:
+                print ' doing virt-install'
             self.do_virtinstall()
         except Exception, e:
             raise Exception('virt-install failed: ' + str(e))
@@ -333,7 +372,10 @@ if __name__ == "__main__":
                         help='os variant, i.e., rhel7')
     parser.add_argument('-f', '--configfile',
                         help='specify an alternate config file, default=~/.config/kvm-install/config.yaml')
+    parser.add_argument('--verbose', dest='verbose', action='store_true',
+                        help='verbose output')
     parser.add_argument('name',
                         help='name of the new virtual machine')
+    parser.set_defaults(verbose=False)
     args = parser.parse_args()
     KVMInstall(args)
