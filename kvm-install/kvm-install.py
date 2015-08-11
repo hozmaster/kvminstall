@@ -212,26 +212,28 @@ class KVMInstall(object):
         # Now generate the virst net-update command
         command = ['virsh',
                    'net-update',
-                   '--network', self.config['network'],
-                   '--command', 'add-last',
-                   '--section', 'ip-dhcp-host',
-                   '--xml']
-        host_xml = '"<host mac=\'' + new_mac + '\' name=\'' + self.config['name'] + '.' + self.config['domain'] + \
-                   '\' ip=\'' + new_ip + '\'/>"'
+                   self.config['network'],
+                   'add-last',
+                   'ip-dhcp-host']
+        host_xml = '\\"<host mac=\'' + new_mac + '\' name=\'' + self.config['name'] + '.' + self.config['domain'] + \
+                   '\' ip=\'' + new_ip + '\'/>\\"'
         command.append(host_xml)
 
         print '+++ command: ' + ' '.join(command)
 
         # First, update the persistent config
         try:
-            config_command = command.append('--config')
+            config_command = command
+            config_command.append('--config')
             self.run_command(config_command, self.stdout, self.stderr)
         except Exception, e:
             raise Exception('virsh net-update --config failed: ' + str(e))
 
         # Now, update the current config
         try:
-            self.run_command(command.append('--current'), self.stdout, self.stderr)
+            current_command = command
+            current_command.append('--current')
+            self.run_command(current_command, self.stdout, self.stderr)
         except Exception, e:
             raise Exception('virsh net-update --current failed: ' + str(e))
 
