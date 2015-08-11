@@ -6,6 +6,9 @@ import os
 import platform
 import argparse
 import yaml
+import re
+import string
+import random
 import xml.etree.ElementTree as ET
 
 __author__ = 'Jason Callaway'
@@ -17,41 +20,134 @@ __status__ = 'alpha'
 SUPPORTED_PLATFORMS = ['rhel', 'centos', 'fedora']
 CONFIG_PATH = '~/.config/kvm-install/config.yaml'
 
-STDOUT_FILE = '/tmp/kvm-install_out.txt'
-STDERR_FILE = '/tmp/kvm-install_err.txt'
-VIRSH_NETDUMPXML_FILE = '/tmp/virsh-netdumpxml.xml'
-
 class KVMInstall(object):
+
+    def setup_tmp(self, random8):
+        tmpdir = TMP + '/kvm-install-' + random8
+        try:
+            os.makedirs(tmpdir)
+        except Exception, e:
+            raise e
+        self.stdout = tmpdir + '/stdout.txt'
+        self.stderr = tmpdir + '/stderr.txt'
+        self.virsh_netdumpxml = tmpdir + '/netdump.xml'
+
+    def get_random(self, domain, length):
+        return ''.join(random.SystemRandom().choice(domain) for _ in range(length))
 
     def do_virtinstall(self):
 
     def restart_dnsmasq(self):
 
-    def get_mac_addresses(self):
-        network = self.config['network']
-
-        # Determine which network we're talking about
-        mac_prefix = self.config['mac']
-
-        # Set up our stdout and stderr files
-        stdout = open(VIRSH_NETDUMPXML_FILE, 'w')
-        stderr = open(STDERR_FILE, 'a')
-
-        command = ['virsh', 'net-dumpxml', network]
-        exit_signal = subprocess.call(command, stdout=stdout, stderr=stderr)
+    def run_command(self, command, stdout, stderr):
+        out = open(stdout, 'a')
+        err = open(stderr, 'a')
+        exit_signal = subprocess.call(command, stdout=out, stderr=err)
         if exit_signal != 0:
             raise Exception('command failed with exit signal ' + str(exit_signal) + ': ' + ' '.join(command))
         stdout.close()
         stderr.close()
 
-        # So far so good, let's go ahead and parse the xml file now
-        tree = ET.parse(VIRSH_NETDUMPXML_FILE)
-        ## left off here
+    def generate_mac(self, prefix):
+        generated_mac = ''
+        # Determine how long our prefix is
+        colons = prefix.count(':')
+        # Add that number of hex substrings
+        for _ in range(5 - colons):
+            # This is a little big funky. I wanted to be sure we have only a-f,0-9, but the string.hexdigits
+            # string includes a-f,A-F, so we have to convert to lower case and strip out duplicates
+            hex_domain = ''.join(set(string.hexdigits.lower()))
+            new_hex = self.getrandom(hex_domain, 2)
+            generated_mac.join(':' + new_hex)
+        return generated_mac
+
+    def generate_ip(self, prefix):
 
 
+    def net_dumpxml(self, network):
+        network = self.config['network']
+        command = ['virsh', 'net-dumpxml', network]
+        try:
+            self.run_command(command, self.virsh_netdumpxml, self.stderr)
+        except Exception, e:
+            raise e
+
+    def get_etree_elements(self, xmlfile, element):
+        tree = ET.parse(xmlfile)
+        l = []
+        for elem in tree.getiterator():
+            l.append(elem.get(element))
+        return l
+
+    def get_mac_addresses(self):
+        return self.get_etree_elements(self.virsh_netdumpxml, 'mac')
+
+    def get_ip_addresses(self):
+        return self.get_etree_elements(self.virsh_netdumpxml, 'ip')
+
+    def get_ip_range(self, xmlfile):
+        tree = ET.parse(xmlfile)
+        root = tree.getroot()
+        start = root.find('ip').find('dhcp').find('range').get('start')
+        end = root.find('ip').find('dhcp').find('range').get('end')
+        return [start, end]
 
     def setup_network(self):
         """Setup the virsh network settings for the VM"""
+
+        # First, find a new mac address
+        mac_addresses = self.get_mac_addresses()
+        new_mac = ''
+        good_mac = False
+        while good_mac is False:
+            new_mac = self.generate_mac(self.config['mac'])
+            if new_mac is not in mac_addresses:
+                good_mac = True
+
+        # Then find an IP address in range that doesn't already exist
+        ip_addresses = self.get_ip_addresses()
+        ip_start, ip_end = self.get_ip_range(self.virsh_netdumpxml)
+        start = re.sub('^\d{1,3}\.\d{1,3}\.\d{1,3}\.', '', ip_start)
+        end = re.sub('^\d{1,3}\.\d{1,3}\.\d{1,3}\.', '', ip_end)
+        first_three_octets = re.sub('\.\d{1,3}$', '', ip_start)
+        new_ip = ''
+        good_ip = False
+        while good_ip is False:
+            new_ip = first_three_octets + '.' + random.randint(int(start), int(end))
+            if new_ip is not in ip_addresses:
+                good_ip = True
+
+        # Record the new IP for other functions' use
+        self.config['new_ip'] = new_ip
+
+        # Now generate the virst net-update command
+        command = ['virsh', 'net-update', '--network', self.config['network'], '--command', 'add-last',
+                   '--section', 'ip-dhcp-host', '--xml']
+        host_xml = '"<host mac=\'' + new_mac + '\' name=\'' + self.config['name'] + '.' + self.config['domain'] + \
+                   '\' ip=\'' + new_ip + '\'/>"'
+
+        # First, update the persistent config
+        try:
+            self.run_command(command.append(host_xml).append('--config'), self.stdout, self.stderr)
+        except Exception, e:
+            raise e
+
+        # Now, update the current config
+        try:
+            self.run_command(command.append(host_xml).append('--current'), self.stdout, self.stderr)
+        except Exception, e:
+            raise e
+
+    def update_etchosts(self):
+        etchosts = open('/etc/hosts', 'r+')
+        hosts = etchosts.read()
+        hosts = hosts + self.config['new_ip'] + '\t' + self.config['name'] + '.' + self.config['domain'] + ' ' + \
+                self.config['name'] + '\n'
+        etchosts.seek(0)
+        etchosts.truncate()
+        etchosts.write(hosts)
+        etchosts.close()
+
 
     def setup_lvm(self):
         """Setup the VMs root volume with LVM"""
@@ -61,16 +157,11 @@ class KVMInstall(object):
         size = self.config['disk']
         name = self.config['name']
 
-        # Setup our stdout and stderr files
-        stdout = open(STDOUT_FILE, 'a')
-        stderr = open(STDERR_FILE, 'a')
-
         command = ['lvcreate', '-s', from_lvm, '-L', size + 'G', '-n', name]
-        exit_signal = subprocess.call(command, stdout=stdout, stderr=stderr)
-        if exit_signal != 0:
-            raise Exception('command failed with exit signal ' + str(exit_signal) + ': ' + ' '.join(command))
-        stdout.close()
-        stderr.close()
+        try:
+            self.run_command(command, self.stdout, self.stderr)
+        except Exception, e:
+            raise e
 
     def setup_image(self):
         """Setup the VMs root volume with an image file"""
@@ -82,16 +173,12 @@ class KVMInstall(object):
         size = self.config['disk']
         name = self.config['name']
 
-        # Setup our stdout and stderr files
-        stdout = open(STDOUT_FILE, 'a')
-        stderr = open(STDERR_FILE, 'a')
-
         command = ['cp', from_image, path + '/' + name + extension]
-        exit_signal = subprocess.call(command, stdout=stdout, stderr=stderr)
-        if exit_signal != 0:
-            raise Exception('command failed with exit signal ' + str(exit_signal) + ': ' + ' '.join(command))
-        stdout.close()
-        stderr.close()
+        try:
+            self.run_command(command, self.stdout, self.stderr)
+        except Exception, e:
+            raise e
+
 
     def parse_config(self):
         """Parse home dir .config file"""
@@ -126,6 +213,10 @@ class KVMInstall(object):
         # This make my IDE happy
         self.config = {}
 
+        # Set up our random string and temp directory
+        random8 = self.get_random(string.ascii_letters + string.digits, 8)
+        self.setup_tmp(random8)
+
         # Check to see if we're on a supported platform.
         if platform.dist()[0] not in SUPPORTED_PLATFORMS:
             raise Exception('unsupported platform: ' + platform.dist()[0])
@@ -138,7 +229,7 @@ class KVMInstall(object):
             self.args.configfile = CONFIG_PATH
         self.parse_config()
 
-        # If we have both a clond and image config directive, prefer LVM
+        # If we have both a clone and image config directive, prefer LVM
         if self.config.has_key('clone'):
             self.setup_lvm()
         else:
@@ -146,6 +237,11 @@ class KVMInstall(object):
                 self.setup_image()
             else:
                 raise Exception('you must specify either an LVM or file base image with -c or -i')
+
+        # Dump the network's xml
+        self.net_dumpxml(self.config['network'])
+
+        # Now set up the new network
 
 
 if __name__ == "__main__":
