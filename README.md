@@ -1,5 +1,5 @@
 # kvm-install
-Python helper script for virt-install(1)
+Python helper for virt-install(1)
 
 ## Usage
 
