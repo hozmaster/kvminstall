@@ -143,8 +143,9 @@ class KVMInstall(object):
         num_colons = prefix.count(':')
         # Add that number of hex substrings
         for _ in range(5 - num_colons):
-            # This is a little big funky. I wanted to be sure we have only a-f,0-9, but the string.hexdigits
-            # string includes a-f,A-F, so we have to convert to lower case and strip out duplicates
+            # This is a little big funky. I wanted to be sure we have only
+            # a-f,0-9, but the string.hexdigits string includes a-f,A-F,
+            # so we have to convert to lower case and strip out duplicates
             hex_domain = ''.join(set(string.hexdigits.lower()))
             print '+++ hex_domain: ' + hex_domain
             new_hex = self.get_random(hex_domain, 2)
