@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Python helper script for virt-install(1)"""
+"""Python helper for virt-install(1)"""
 
 import subprocess
 import os
