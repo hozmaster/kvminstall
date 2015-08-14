@@ -39,17 +39,17 @@ class KVMInstallFuncs(object):
     def parse_config(self, args):
         """Parse home dir .config file"""
 
-        # This function does three things. If the DEFAULT_CONFIG file doesn't
+        # This function does three things. If the default_config file doesn't
         # exist, we create it. Once we create it, or if it already exists,
         # we load the config values and return them. Lastly, if the user
-        # specified any command line args, we override the DEFAULT_CONFIG with
+        # specified any command line args, we override the default_config with
         # those arguments.
 
-        # Determine DEFAULT_CONFIG location, or use the one specified by arg.
+        # Determine default_config location, or use the one specified by arg.
         include_vars_yaml = open('include_vars.yaml').read()
         include_vars = yaml.load(include_vars_yaml)
         if args.configfile is None:
-            config_path = include_vars['DEFAULT_CONFIG']
+            config_path = include_vars['default_config']
         else:
             config_path = args.configfile
         if args.verbose is True:
@@ -158,7 +158,7 @@ class KVMInstallFuncs(object):
     def restart_dnsmasq(self, config):
         command = ['systemctl', 'restart', 'dnsmasq.service']
         try:
-            self.run_command(command, config['stdout'], config['stderr'])
+            self.run_command(command, config)
         except Exception, e:
             raise e
 

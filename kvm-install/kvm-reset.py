@@ -17,10 +17,6 @@ __license__ = 'Apache License Version 2.0'
 __version__ = '0.1'
 __status__ = 'alpha'
 
-# TODO: add support for other platforms
-SUPPORTED_PLATFORMS = ['rhel', 'centos', 'fedora']
-CONFIG_PATH = os.path.expanduser('~') + '/.config/kvm-install/config.yaml'
-
 
 class KVMReset(object):
     

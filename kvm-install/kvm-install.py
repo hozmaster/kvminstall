@@ -24,7 +24,7 @@ class KVMInstall(object):
 
         # Grab the config values we need
         from_lvm = self.config['clone']
-        size = self.config['disk']
+        size = str(self.config['disk'])
         name = self.config['name']
 
         # Clone an LVM volume from the baseimage volume.
@@ -94,7 +94,7 @@ class KVMInstall(object):
                 new_mac = self.generate_mac(self.config['mac'])
                 if new_mac not in mac_addresses:
                     good_mac = True
-                    if self.config.verbose is True:
+                    if self.config['verbose'] is True:
                         print '  new mac found: ' + new_mac
         except Exception, e:
             raise Exception('setup_network failed ' +
@@ -109,7 +109,7 @@ class KVMInstall(object):
                 new_ip = self.generate_ip()
                 if new_ip not in ip_addresses:
                     good_ip = True
-                    if self.config.verbose is True:
+                    if self.config['verbose'] is True:
                         print '  new ip found: ' + new_ip
         except Exception, e:
             raise Exception('setup_network failed ' +
@@ -220,14 +220,21 @@ class KVMInstall(object):
         # Load include_vars and funcs.
         include_vars_yaml = open('include_vars.yaml').read()
         self.vars = yaml.load(include_vars_yaml)
-        self.funcs = include_funcs.KVMInstallFuncs(parsed_args)
+        self.funcs = include_funcs.KVMInstallFuncs()
 
         # Check to see if we're on a supported platform.
-        if platform.dist()[0] not in self.vars['SUPPORTED_PLATFORMS']:
+        if platform.dist()[0] not in self.vars['supported_platforms']:
             raise Exception('unsupported platform: ' + platform.dist()[0])
 
         # This make my IDE happy
         self.config = {}
+
+        # Parse the config file and build our config object
+        if parsed_args.verbose is True:
+            print ' parsing config file'
+        if parsed_args.configfile is None:
+            parsed_args.configfile = self.vars['default_config']
+        self.config = self.funcs.parse_config(parsed_args)
 
         # Set up our random string and temp directory
         domain = string.ascii_letters + string.digits
@@ -237,20 +244,13 @@ class KVMInstall(object):
         self.config['stderr'] = stderr
         self.config['virsh_netdumpxml'] = virsh_netdumpxml
 
-        # Parse the config file and build our config object
-        if self.config.verbose is True:
-            print ' parsing config file'
-        if parsed_args.configfile is None:
-            parsed_args.configfile = self.vars.DEFAULT_CONFIG
-        self.config = self.funcs.parse_config(parsed_args)
-
         # If we have both a clone and image config directive, prefer LVM
         if 'clone' in self.config:
-            if self.config.verbose is True:
+            if self.config['verbose'] is True:
                 print ' setting up lvm'
             self.setup_lvm()
         else:
-            if self.config.verbose is True:
+            if self.config['verbose'] is True:
                 print ' setting up image'
             if 'image' in self.config:
                 self.setup_image()
@@ -260,7 +260,7 @@ class KVMInstall(object):
 
         # Now set up the new network
         try:
-            if self.config.verbose is True:
+            if self.config['verbose'] is True:
                 print ' setting up network'
             self.setup_network()
         except Exception, e:
@@ -268,7 +268,7 @@ class KVMInstall(object):
 
         # Update /etc/hosts
         try:
-            if self.config.verbose is True:
+            if self.config['verbose'] is True:
                 print ' updating /etc/hosts'
             self.funcs.update_etchosts(self.config, 'add')
         except Exception, e:
@@ -276,7 +276,7 @@ class KVMInstall(object):
 
         # Restart the dnsmasq service
         try:
-            if self.config.verbose is True:
+            if self.config['verbose'] is True:
                 print ' restarting dnsmasq'
             self.funcs.restart_dnsmasq()
         except Exception, e:
@@ -284,7 +284,7 @@ class KVMInstall(object):
 
         # Finally, we can install the VM
         try:
-            if self.config.verbose is True:
+            if self.config['verbose'] is True:
                 print ' doing virt-install'
             self.do_virtinstall()
         except Exception, e:
