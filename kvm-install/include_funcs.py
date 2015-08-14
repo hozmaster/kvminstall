@@ -6,6 +6,7 @@ import os
 import yaml
 import random
 import xml.etree.ElementTree as ET
+import include_vars
 
 __author__ = 'Jason Callaway'
 __email__ = 'jason@jasoncallaway.com'
@@ -14,13 +15,13 @@ __version__ = '0.1'
 __status__ = 'alpha'
 
 # TODO: add support for other platforms
-SUPPORTED_PLATFORMS = ['rhel', 'centos', 'fedora']
-CONFIG_PATH = os.path.expanduser('~') + '/.config/kvm-install/config.yaml'
 
 
 class KVMInstallFuncs(object):
 
     def setup_tmp(self, random8):
+        # Set up our temp directories and return the path names to the
+        # STDOUT and STDERR files as well as the virsh net-dumpxml file.
         tmpdir = '/tmp/kvm-install-' + random8
         try:
             os.makedirs(tmpdir)
@@ -33,19 +34,26 @@ class KVMInstallFuncs(object):
         return stdout, stderr, virsh_netdumpxml
 
     def get_random(self, domain, length):
-        return ''.join(random.SystemRandom().choice(domain) for _ in range(length))
+        return ''.join(random.SystemRandom().choice(domain)
+                       for _ in range(length))
 
     def parse_config(self, args):
         """Parse home dir .config file"""
 
+        # This function does three things. If the DEFAULT_CONFIG file doesn't
+        # exist, we create it. Once we create it, or if it already exists,
+        # we load the config values and return them. Lastly, if the user
+        # specified any command line args, we override the DEFAULT_CONFIG with
+        # those arguments.
         if args.configfile is None:
-            config_path = CONFIG_PATH
+            config_path = self.vars.DEFAULT_CONFIG
         else:
             config_path = args.configfile
         if args.verbose is True:
             print '  using config file: ' + config_path
+
+        # If the config file doesn't exist, let's create and populate it.
         try:
-            # If the config file doesn't exist, let's create and populate it
             if not os.path.isfile(config_path):
                 os.makedirs(os.path.split(config_path)[0])
                 with open(config_path, 'w') as config_file:
@@ -59,7 +67,8 @@ class KVMInstallFuncs(object):
                                       'type: linux\n' +
                                       'variant: rhel7\n')
         except Exception, e:
-            raise Exception('unable to create config file at ' + config_path + ': ' + str(e))
+            raise Exception('unable to create config file at ' +
+                            config_path + ': ' + str(e))
 
         try:
             # Now read and parse it
@@ -139,5 +148,5 @@ class KVMInstallFuncs(object):
             raise e
 
     def __init__(self, parsed_args):
-        pass
+        self.vars = include_vars.KVMInstallVars
 
