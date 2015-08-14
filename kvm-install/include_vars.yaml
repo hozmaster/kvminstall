@@ -1,0 +1,6 @@
+---
+supported_platforms:
+  - rhel
+  - centos
+  - fedora
+default_config: /root/.config/kvm-install/config

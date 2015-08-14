@@ -6,7 +6,6 @@ import os
 import yaml
 import random
 import xml.etree.ElementTree as ET
-import include_vars
 
 __author__ = 'Jason Callaway'
 __email__ = 'jason@jasoncallaway.com'
@@ -45,8 +44,12 @@ class KVMInstallFuncs(object):
         # we load the config values and return them. Lastly, if the user
         # specified any command line args, we override the DEFAULT_CONFIG with
         # those arguments.
+
+        # Determine DEFAULT_CONFIG location, or use the one specified by arg.
+        include_vars_yaml = open('include_vars.yaml').read()
+        include_vars = yaml.load(include_vars_yaml)
         if args.configfile is None:
-            config_path = self.vars.DEFAULT_CONFIG
+            config_path = include_vars['DEFAULT_CONFIG']
         else:
             config_path = args.configfile
         if args.verbose is True:
@@ -70,12 +73,13 @@ class KVMInstallFuncs(object):
             raise Exception('unable to create config file at ' +
                             config_path + ': ' + str(e))
 
+        # Now read and parse it
         try:
-            # Now read and parse it
             config_string = open(config_path).read()
             config = yaml.load(config_string)
         except Exception, e:
-            raise Exception('unable to read config file at ' + config_path + ': ' + str(e))
+            raise Exception('unable to read config file at ' +
+                            config_path + ': ' + str(e))
 
         # Now iterate over the arguments to build the config.
         # Remember, self.args is a Namespace.
@@ -85,24 +89,32 @@ class KVMInstallFuncs(object):
 
         return config
 
-    def run_command(self, command, stdout, stderr):
-        if self.args.verbose is True:
+    def run_command(self, command, config):
+        stdout = config['stdout']
+        stderr = config['stderr']
+        if config.verbose is True:
             print '  running command: ' + ' '.join(command)
             print '  stdout: ' + stdout
             print '  stderr: ' + stderr
         out = open(stdout, 'a')
         err = open(stderr, 'a')
-        exit_signal = subprocess.call(' '.join(command), stdout=out, stderr=err, shell=True)
+        # In order to run with shell=True we have to pass subprocess a string.
+        # So we'll join the elements of the command List.
+        exit_signal = subprocess.call(' '.join(command),
+                                      stdout=out,
+                                      stderr=err,
+                                      shell=True)
         if exit_signal != 0:
-            raise Exception('command failed with exit signal ' + str(exit_signal) + ': ' + ' '.join(command))
+            raise Exception('command failed with exit signal ' +
+                            str(exit_signal) + ': ' + ' '.join(command))
         out.close()
         err.close()
 
-    def net_dumpxml(self, network):
-        network = self.config['network']
+    def net_dumpxml(self, config):
+        network = config['network']
         command = ['virsh', 'net-dumpxml', network]
         try:
-            self.run_command(command, self.virsh_netdumpxml, self.stderr)
+            self.run_command(command, config)
         except Exception, e:
             raise e
 
@@ -114,11 +126,11 @@ class KVMInstallFuncs(object):
                 l.append(elem.get(element))
         return l
 
-    def get_mac_addresses(self):
-        return self.get_etree_elements(self.virsh_netdumpxml, 'mac')
+    def get_mac_addresses(self, config):
+        return self.get_etree_elements(config['virsh_netdumpxml'], 'mac')
 
-    def get_ip_addresses(self):
-        return self.get_etree_elements(self.virsh_netdumpxml, 'ip')
+    def get_ip_addresses(self, config):
+        return self.get_etree_elements(config['virsh_netdumpxml'], 'ip')
 
     def get_ip_range(self, xmlfile):
         tree = ET.parse(xmlfile)
@@ -127,26 +139,28 @@ class KVMInstallFuncs(object):
         end = root.find('ip').find('dhcp').find('range').get('end')
         return [start, end]
 
-    def update_etchosts(self):
-        try:
-            etchosts = open('/etc/hosts', 'r+')
-            hosts = etchosts.read()
-            hosts = hosts + self.config['new_ip'] + '\t' + self.config['name'] + '.' + self.config['domain'] + ' ' + \
-                    self.config['name'] + '\n'
-            etchosts.seek(0)
-            etchosts.truncate()
-            etchosts.write(hosts)
-            etchosts.close()
-        except Exception, e:
-            raise e
+    def update_etchosts(self, config, action):
+        if action == 'add':
+            try:
+                etchosts = open('/etc/hosts', 'r+')
+                hosts = etchosts.read()
+                hosts = hosts + config['new_ip'] + '\t' + \
+                        config['name'] + '.' + config['domain'] + ' ' + \
+                        config['name'] + '\n'
+                etchosts.seek(0)
+                etchosts.truncate()
+                etchosts.write(hosts)
+                etchosts.close()
+            except Exception, e:
+                raise e
+        # TODO: add delete action
 
-    def restart_dnsmasq(self):
+    def restart_dnsmasq(self, config):
         command = ['systemctl', 'restart', 'dnsmasq.service']
         try:
-            self.run_command(command, self.stdout, self.stderr)
+            self.run_command(command, config['stdout'], config['stderr'])
         except Exception, e:
             raise e
 
-    def __init__(self, parsed_args):
-        self.vars = include_vars.KVMInstallVars
-
+    def __init__(self):
+        pass

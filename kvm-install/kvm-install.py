@@ -8,7 +8,7 @@ import re
 import string
 import random
 import include_funcs
-import include_vars
+import yaml
 
 __author__ = 'Jason Callaway'
 __email__ = 'jason@jasoncallaway.com'
@@ -30,9 +30,7 @@ class KVMInstall(object):
         # Clone an LVM volume from the baseimage volume.
         command = ['lvcreate', '-s', from_lvm, '-L', size + 'G', '-n', name]
         try:
-            self.funcs.run_command(command,
-                                   self.config['stdout'],
-                                   self.config['stderr'])
+            self.funcs.run_command(command, self.config)
         except Exception, e:
             raise e
 
@@ -49,9 +47,7 @@ class KVMInstall(object):
         # Copy the base image to our new file.
         command = ['cp', from_image, path + '/' + name + extension]
         try:
-            self.funcs.run_command(command,
-                                   self.config['stdout'],
-                                   self.config['stderr'])
+            self.funcs.run_command(command, self.config)
         except Exception, e:
             raise e
 
@@ -85,7 +81,7 @@ class KVMInstall(object):
 
         # Dump the network config to an xml file for 1) easy parsing and
         # 2) backup just in case something goes sideways.
-        self.funcs.net_dumpxml(self.config['network'])
+        self.funcs.net_dumpxml(self.config)
 
         # TODO: Add IPv6 support
 
@@ -143,9 +139,7 @@ class KVMInstall(object):
         # Now, update the current config
         try:
             current_command.append('--current')
-            self.funcs.run_command(current_command,
-                                   self.config['stdout'],
-                                   self.config['stderr'])
+            self.funcs.run_command(current_command, self.config)
         except Exception, e:
             raise Exception('virsh net-update --current failed: ' + str(e))
 
@@ -153,9 +147,7 @@ class KVMInstall(object):
         # First, update the persistent config
         try:
             config_command.append('--config')
-            self.funcs.run_command(config_command,
-                                   self.config['stdout'],
-                                   self.config['stderr'])
+            self.funcs.run_command(config_command, self.config)
         except Exception, e:
             raise Exception('virsh net-update --config failed: ' + str(e))
 
@@ -181,9 +173,7 @@ class KVMInstall(object):
         # Now, update the current config
         try:
             current_command.append('--current')
-            self.funcs.run_command(current_command,
-                                   self.config['stdout'],
-                                   self.config['stderr'])
+            self.funcs.run_command(current_command, self.config)
         except Exception, e:
             raise Exception('virsh net-update --current failed: ' + str(e))
 
@@ -191,9 +181,7 @@ class KVMInstall(object):
         # First, update the persistent config
         try:
             config_command.append('--config')
-            self.funcs.run_command(config_command,
-                                   self.config['stdout'],
-                                   self.config['stderr'])
+            self.funcs.run_command(config_command, self.config)
         except Exception, e:
             raise Exception('virsh net-update --config failed: ' + str(e))
 
@@ -220,23 +208,23 @@ class KVMInstall(object):
                            ',size=' + str(self.config['disk']) +
                            ',format=qcow2'])
         try:
-            self.funcs.run_command(command,
-                                   self.config['stdout'],
-                                   self.config.['stderr'])
+            self.funcs.run_command(command, self.config)
         except Exception, e:
             raise e
 
     def __init__(self, parsed_args):
         # TODO: put in environemnt checks, i.e., does virt-install exist, etc.
 
-        # Check to see if we're on a supported platform.
-        if platform.dist()[0] not in self.vars.SUPPORTED_PLATFORMS:
-            raise Exception('unsupported platform: ' + platform.dist()[0])
-
         # TODO: verify that we're running as root.
 
-        self.vars = include_vars.KVMInstallVars()
+        # Load include_vars and funcs.
+        include_vars_yaml = open('include_vars.yaml').read()
+        self.vars = yaml.load(include_vars_yaml)
         self.funcs = include_funcs.KVMInstallFuncs(parsed_args)
+
+        # Check to see if we're on a supported platform.
+        if platform.dist()[0] not in self.vars['SUPPORTED_PLATFORMS']:
+            raise Exception('unsupported platform: ' + platform.dist()[0])
 
         # This make my IDE happy
         self.config = {}
@@ -270,8 +258,8 @@ class KVMInstall(object):
                 raise Exception('you must specify either an LVM ' +
                                 'or file base image with -c or -i')
 
+        # Now set up the new network
         try:
-            # Now set up the new network
             if self.config.verbose is True:
                 print ' setting up network'
             self.setup_network()
@@ -282,7 +270,7 @@ class KVMInstall(object):
         try:
             if self.config.verbose is True:
                 print ' updating /etc/hosts'
-            self.funcs.update_etchosts()
+            self.funcs.update_etchosts(self.config, 'add')
         except Exception, e:
             raise Exception('update /etc/hosts failed: ' + str(e))
 
