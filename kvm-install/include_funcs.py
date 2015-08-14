@@ -1,0 +1,143 @@
+#!/usr/bin/env python
+"""Common functions for kvm-install, kvm-uninsall, and kvm-reset"""
+
+import subprocess
+import os
+import yaml
+import random
+import xml.etree.ElementTree as ET
+
+__author__ = 'Jason Callaway'
+__email__ = 'jason@jasoncallaway.com'
+__license__ = 'Apache License Version 2.0'
+__version__ = '0.1'
+__status__ = 'alpha'
+
+# TODO: add support for other platforms
+SUPPORTED_PLATFORMS = ['rhel', 'centos', 'fedora']
+CONFIG_PATH = os.path.expanduser('~') + '/.config/kvm-install/config.yaml'
+
+
+class KVMInstallFuncs(object):
+
+    def setup_tmp(self, random8):
+        tmpdir = '/tmp/kvm-install-' + random8
+        try:
+            os.makedirs(tmpdir)
+        except Exception, e:
+            raise e
+        stdout = tmpdir + '/stdout.txt'
+        stderr = tmpdir + '/stderr.txt'
+        virsh_netdumpxml = tmpdir + '/netdump.xml'
+
+        return stdout, stderr, virsh_netdumpxml
+
+    def get_random(self, domain, length):
+        return ''.join(random.SystemRandom().choice(domain) for _ in range(length))
+
+    def parse_config(self, args):
+        """Parse home dir .config file"""
+
+        if args.configfile is None:
+            config_path = CONFIG_PATH
+        else:
+            config_path = args.configfile
+        if args.verbose is True:
+            print '  using config file: ' + config_path
+        try:
+            # If the config file doesn't exist, let's create and populate it
+            if not os.path.isfile(config_path):
+                os.makedirs(os.path.split(config_path)[0])
+                with open(config_path, 'w') as config_file:
+                    config_file.write('---\n' +
+                                      'vcpus: 1\n' +
+                                      'ram: 1024\n' +
+                                      'disk: 10\n' +
+                                      'domain: example.com\n' +
+                                      'network: default\n' +
+                                      'mac: 5c:e0:c5:c4:26\n' +
+                                      'type: linux\n' +
+                                      'variant: rhel7\n')
+        except Exception, e:
+            raise Exception('unable to create config file at ' + config_path + ': ' + str(e))
+
+        try:
+            # Now read and parse it
+            config_string = open(config_path).read()
+            config = yaml.load(config_string)
+        except Exception, e:
+            raise Exception('unable to read config file at ' + config_path + ': ' + str(e))
+
+        # Now iterate over the arguments to build the config.
+        # Remember, self.args is a Namespace.
+        for k in args.__dict__:
+            if args.__dict__[k] is not None:
+                config[k] = args.__dict__[k]
+
+        return config
+
+    def run_command(self, command, stdout, stderr):
+        if self.args.verbose is True:
+            print '  running command: ' + ' '.join(command)
+            print '  stdout: ' + stdout
+            print '  stderr: ' + stderr
+        out = open(stdout, 'a')
+        err = open(stderr, 'a')
+        exit_signal = subprocess.call(' '.join(command), stdout=out, stderr=err, shell=True)
+        if exit_signal != 0:
+            raise Exception('command failed with exit signal ' + str(exit_signal) + ': ' + ' '.join(command))
+        out.close()
+        err.close()
+
+    def net_dumpxml(self, network):
+        network = self.config['network']
+        command = ['virsh', 'net-dumpxml', network]
+        try:
+            self.run_command(command, self.virsh_netdumpxml, self.stderr)
+        except Exception, e:
+            raise e
+
+    def get_etree_elements(self, xmlfile, element):
+        tree = ET.parse(xmlfile)
+        l = []
+        for elem in tree.getiterator():
+            if elem.get(element) is not None:
+                l.append(elem.get(element))
+        return l
+
+    def get_mac_addresses(self):
+        return self.get_etree_elements(self.virsh_netdumpxml, 'mac')
+
+    def get_ip_addresses(self):
+        return self.get_etree_elements(self.virsh_netdumpxml, 'ip')
+
+    def get_ip_range(self, xmlfile):
+        tree = ET.parse(xmlfile)
+        root = tree.getroot()
+        start = root.find('ip').find('dhcp').find('range').get('start')
+        end = root.find('ip').find('dhcp').find('range').get('end')
+        return [start, end]
+
+    def update_etchosts(self):
+        try:
+            etchosts = open('/etc/hosts', 'r+')
+            hosts = etchosts.read()
+            hosts = hosts + self.config['new_ip'] + '\t' + self.config['name'] + '.' + self.config['domain'] + ' ' + \
+                    self.config['name'] + '\n'
+            etchosts.seek(0)
+            etchosts.truncate()
+            etchosts.write(hosts)
+            etchosts.close()
+        except Exception, e:
+            raise e
+
+    def restart_dnsmasq(self):
+        command = ['systemctl', 'restart', 'dnsmasq.service']
+        try:
+            self.run_command(command, self.stdout, self.stderr)
+        except Exception, e:
+            raise e
+
+    def __init__(self, parsed_args):
+        pass
+
