@@ -96,6 +96,7 @@ class KVMInstall(object):
                 new_mac = self.generate_mac(self.config['mac'])
                 if new_mac not in mac_addresses:
                     good_mac = True
+                    self.config['new_mac'] = new_mac
                     if self.config['verbose'] is True:
                         print '  new mac found: ' + new_mac
         except Exception, e:
@@ -188,6 +189,8 @@ class KVMInstall(object):
             raise Exception('virsh net-update --config failed: ' + str(e))
 
     def do_virtinstall(self):
+        network_string = 'network:' + self.config['network'] + ',' + \
+            'model=virtio,mac=' + self.config['new_mac']
         command = ['virt-install',
                    '--noautoconsole',
                    '--hvm',
@@ -195,7 +198,7 @@ class KVMInstall(object):
                    '--name', self.config['name'],
                    '--vcpus', str(self.config['vcpus']),
                    '--ram', str(self.config['ram']),
-                   '--network', self.config['network'],
+                   '--network', network_string,
                    '--os-type', self.config['type'],
                    '--os-variant', self.config['variant'],
                    '--boot', 'hd']
