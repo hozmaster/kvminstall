@@ -10,6 +10,8 @@ import random
 import include_funcs
 import yaml
 
+import pprint
+
 __author__ = 'Jason Callaway'
 __email__ = 'jason@jasoncallaway.com'
 __license__ = 'Apache License Version 2.0'
@@ -87,7 +89,7 @@ class KVMInstall(object):
 
         # First, find a new mac address
         try:
-            mac_addresses = self.funcs.get_mac_addresses()
+            mac_addresses = self.funcs.get_mac_addresses(self.config)
             new_mac = ''
             good_mac = False
             while good_mac is False:
@@ -102,7 +104,7 @@ class KVMInstall(object):
 
         # Then find an IP address in range that doesn't already exist
         try:
-            ip_addresses = self.funcs.get_ip_addresses()
+            ip_addresses = self.funcs.get_ip_addresses(self.config)
             new_ip = ''
             good_ip = False
             while good_ip is False:
@@ -191,24 +193,20 @@ class KVMInstall(object):
                    '--hvm',
                    '--vnc',
                    '--name', self.config['name'],
-                   '--vcpus', self.config['vcpus'],
-                   '--ram', self.config['ram'],
+                   '--vcpus', str(self.config['vcpus']),
+                   '--ram', str(self.config['ram']),
                    '--network', self.config['network'],
                    '--os-type', self.config['type'],
                    '--os-variant', self.config['variant'],
                    '--boot', 'hd']
         if 'clone' in self.config:
             devpath = os.path.split(self.config['clone'])[0]
-            command.append(['--disk',
-                            'path=' + devpath + '/' + self.config['name']])
+            install_command = command + ['--disk', 'path=' + devpath + '/' + self.config['name']]
         else:
             imgpath = os.path.split(self.config['image'])[0]
-            command.append(['--disk', 'path=' + imgpath + '/' +
-                           self.config['name'] + '.img' +
-                           ',size=' + str(self.config['disk']) +
-                           ',format=qcow2'])
+            install_command = command + ['--disk', 'path=' + imgpath + '/' + self.config['name'] + '.img' + ',size=' + str(self.config['disk']) + ',format=qcow2']
         try:
-            self.funcs.run_command(command, self.config)
+            self.funcs.run_command(install_command, self.config)
         except Exception, e:
             raise e
 
@@ -216,6 +214,7 @@ class KVMInstall(object):
         # TODO: put in environemnt checks, i.e., does virt-install exist, etc.
 
         # TODO: verify that we're running as root.
+	pp = pprint.PrettyPrinter(indent=4)
 
         # Load include_vars and funcs.
         include_vars_yaml = open('include_vars.yaml').read()
@@ -246,6 +245,7 @@ class KVMInstall(object):
 
         # If we have both a clone and image config directive, prefer LVM
         if 'clone' in self.config:
+            pp.pprint(self.config)
             if self.config['verbose'] is True:
                 print ' setting up lvm'
             self.setup_lvm()
@@ -278,7 +278,7 @@ class KVMInstall(object):
         try:
             if self.config['verbose'] is True:
                 print ' restarting dnsmasq'
-            self.funcs.restart_dnsmasq()
+            self.funcs.restart_dnsmasq(self.config)
         except Exception, e:
             raise Exception('restart dnsmasq failed: ' + str(e))
 

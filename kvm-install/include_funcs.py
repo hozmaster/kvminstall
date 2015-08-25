@@ -86,13 +86,14 @@ class KVMInstallFuncs(object):
         for k in args.__dict__:
             if args.__dict__[k] is not None:
                 config[k] = args.__dict__[k]
+			
 
         return config
 
     def run_command(self, command, config):
         stdout = config['stdout']
         stderr = config['stderr']
-        if config.verbose is True:
+        if config['verbose'] is True:
             print '  running command: ' + ' '.join(command)
             print '  stdout: ' + stdout
             print '  stderr: ' + stderr
@@ -112,7 +113,8 @@ class KVMInstallFuncs(object):
 
     def net_dumpxml(self, config):
         network = config['network']
-        command = ['virsh', 'net-dumpxml', network]
+        xml = config['virsh_netdumpxml']
+        command = ['virsh', 'net-dumpxml', network, '>', xml]
         try:
             self.run_command(command, config)
         except Exception, e:
