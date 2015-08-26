@@ -46,7 +46,11 @@ class KVMInstallFuncs(object):
         # those arguments.
 
         # Determine default_config location, or use the one specified by arg.
-        include_vars_yaml = open('include_vars.yaml').read()
+        package_directory = os.path.dirname(os.path.abspath(__file__))
+        varsyaml = os.path.join(package_directory,
+                                'include_vars.yaml')
+
+        include_vars_yaml = open(varsyaml).read()
         include_vars = yaml.load(include_vars_yaml)
         if args.configfile is None:
             config_path = include_vars['default_config']
