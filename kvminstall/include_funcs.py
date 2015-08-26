@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Common functions for kvm-install, kvm-uninsall, and kvm-reset"""
+"""Common functions for kvminstall, kvm-uninsall, and kvm-reset"""
 
 import subprocess
 import os
@@ -21,7 +21,7 @@ class KVMInstallFuncs(object):
     def setup_tmp(self, random8):
         # Set up our temp directories and return the path names to the
         # STDOUT and STDERR files as well as the virsh net-dumpxml file.
-        tmpdir = '/tmp/kvm-install-' + random8
+        tmpdir = '/tmp/kvminstall-' + random8
         try:
             os.makedirs(tmpdir)
         except Exception, e:

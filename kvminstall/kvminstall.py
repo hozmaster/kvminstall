@@ -317,7 +317,7 @@ class KVMInstall(object):
     #                     help='os variant, i.e., rhel7')
     # parser.add_argument('-f', '--configfile',
     #                     help='specify an alternate config file, ' +
-    #                          'default=~/.config/kvm-install/config.yaml')
+    #                          'default=~/.config/kvminstall/config.yaml')
     # parser.add_argument('--verbose', dest='verbose', action='store_true',
     #                     help='verbose output')
     # parser.add_argument('name',
