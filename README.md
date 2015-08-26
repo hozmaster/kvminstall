@@ -4,7 +4,7 @@ Python helper for virt-install(1)
 ## Usage
 
 ```
-usage: kvm-install.py [-h] [-c CLONE] [-i IMAGE] [-v VCPUS] [-r RAM] [-d DISK]
+usage: kvminstall.py [-h] [-c CLONE] [-i IMAGE] [-v VCPUS] [-r RAM] [-d DISK]
                       [-D DOMAIN] [-N NETWORK] [--type TYPE]
                       [--variant VARIANT] [-f CONFIGFILE]
                       name
