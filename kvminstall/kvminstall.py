@@ -323,5 +323,5 @@ class KVMInstall(object):
     # parser.add_argument('name',
     #                     help='name of the new virtual machine')
     # parser.set_defaults(verbose=False)
-    #
-    # KVMInstall(parser.parse_args())
+
+    # KVMInstall()

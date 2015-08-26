@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import kvminstall.KVMInstall
+import kvminstall
 import argparse
 
 __author__ = 'Jason Callaway'
@@ -39,4 +39,5 @@ parser.add_argument('name',
                     help='name of the new virtual machine')
 parser.set_defaults(verbose=False)
 
-KVMInstall.__main__(parser.parse_args())
+# kvminstall.__main__(parser.parse_args())
+kvminstall.KVMInstall(parser.parse_args())
