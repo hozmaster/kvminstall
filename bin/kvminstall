@@ -4,7 +4,7 @@ import sys
 import argparse
 
 sys.path.append('..')
-import kvminstall
+from kvminstall import kvminstall
 
 __author__ = 'Jason Callaway'
 __email__ = 'jason@jasoncallaway.com'
@@ -42,5 +42,4 @@ parser.add_argument('name',
                     help='name of the new virtual machine')
 parser.set_defaults(verbose=False)
 
-# kvminstall.__main__(parser.parse_args())
 kvminstall.KVMInstall(parser.parse_args())

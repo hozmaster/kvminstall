@@ -217,10 +217,15 @@ class KVMInstall(object):
         # TODO: put in environemnt checks, i.e., does virt-install exist, etc.
 
         # TODO: verify that we're running as root.
-	pp = pprint.PrettyPrinter(indent=4)
+
+        # Save relative path to module
+        package_directory = os.path.dirname(os.path.abspath(__file__))
 
         # Load include_vars and funcs.
-        include_vars_yaml = open('include_vars.yaml').read()
+        varsyaml = os.path.join(package_directory,
+                                'kvminstall',
+                                'include_vars.yaml')
+        include_vars_yaml = open(varsyaml).read()
         self.vars = yaml.load(include_vars_yaml)
         self.funcs = include_funcs.KVMInstallFuncs()
 
