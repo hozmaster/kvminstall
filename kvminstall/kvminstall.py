@@ -223,7 +223,6 @@ class KVMInstall(object):
 
         # Load include_vars and funcs.
         varsyaml = os.path.join(package_directory,
-                                'kvminstall',
                                 'include_vars.yaml')
         include_vars_yaml = open(varsyaml).read()
         self.vars = yaml.load(include_vars_yaml)
