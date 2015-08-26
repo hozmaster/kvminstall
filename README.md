@@ -4,7 +4,7 @@ Python helper for virt-install(1)
 ## Usage
 
 ```
-usage: kvminstall.py [-h] [-c CLONE] [-i IMAGE] [-v VCPUS] [-r RAM] [-d DISK]
+usage: kvminstall [-h] [-c CLONE] [-i IMAGE] [-v VCPUS] [-r RAM] [-d DISK]
                       [-D DOMAIN] [-N NETWORK] [--type TYPE]
                       [--variant VARIANT] [-f CONFIGFILE]
                       name
@@ -33,3 +33,20 @@ optional arguments:
                         /kvm-install/config.yaml
 ```
 
+## Installation
+
+Use pip to install.
+
+```
+pip install kvminstall
+```
+
+This will automatically install the utility into your PATH.
+
+## Example
+
+Assume that you have a pre-built base image with an LVM backend in the libvirt_lvm VG.
+
+```
+kvminstall -c /dev/libvirt_lvm/rhel71base examplevm
+```
