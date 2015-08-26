@@ -3,14 +3,11 @@
 
 import os
 import platform
-import argparse
 import re
 import string
 import random
 import include_funcs
 import yaml
-
-import pprint
 
 __author__ = 'Jason Callaway'
 __email__ = 'jason@jasoncallaway.com'
@@ -168,8 +165,6 @@ class KVMInstall(object):
                    '</hostname></host>"'
         command.append(host_xml)
 
-        print '+++ command: ' + ' '.join(command)
-
         config_command = list(command)
         current_command = list(command)
 
@@ -252,7 +247,6 @@ class KVMInstall(object):
 
         # If we have both a clone and image config directive, prefer LVM
         if 'clone' in self.config:
-            pp.pprint(self.config)
             if self.config['verbose'] is True:
                 print ' setting up lvm'
             self.setup_lvm()
