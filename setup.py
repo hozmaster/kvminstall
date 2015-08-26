@@ -11,4 +11,5 @@ setup(
   download_url = 'https://github.com/jason-callaway/kvm-install/tarball/0.1',
   keywords = ['kvm', 'qemu', 'vm', 'virt-install'],
   classifiers = [],
+  scripts = ['bin/kvm-install'],
 )
