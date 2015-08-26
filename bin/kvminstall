@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
-import kvminstall
+import sys
 import argparse
+
+sys.path.append('..')
+import kvminstall
 
 __author__ = 'Jason Callaway'
 __email__ = 'jason@jasoncallaway.com'
