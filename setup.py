@@ -15,4 +15,5 @@ setup(name='kvminstall',
             'License :: OSI Approved :: Apache Software License',
             'Programming Language :: Python :: 2.7',
       ],
+      package_data={'kvminstall': ['include_vars.yaml']},
       scripts=['bin/kvminstall'])
