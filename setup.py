@@ -12,7 +12,7 @@ setup(name='kvminstall',
       keywords=['kvm', 'qemu', 'vm', 'virt-install'],
       classifiers=[
             'Development Status :: 3 - Alpha',
-            'License :: OSI Approved :: Apache 2.0',
+            'License :: OSI Approved :: Apache Software License',
             'Programming Language :: Python :: 2.7',
       ],
       scripts=['bin/kvminstall'])

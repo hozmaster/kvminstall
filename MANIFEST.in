@@ -1,2 +1,2 @@
-recursive-include *.yaml
 include README.md
+include kvminstall/include_vars.yaml
