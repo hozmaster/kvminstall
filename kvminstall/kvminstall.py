@@ -67,7 +67,7 @@ class KVMInstall(object):
     def generate_ip(self):
         # We don't want to gernate an IP outside the DHCP range in the virsh
         # network.
-        ip_start, ip_end = self.funcs.get_ip_range(self.config['virsh_netdumpxml'])
+        ip_start, ip_end = self.funcs.get_ip_range(self.config)
         start = re.sub('^\d{1,3}\.\d{1,3}\.\d{1,3}\.', '', ip_start)
         end = re.sub('^\d{1,3}\.\d{1,3}\.\d{1,3}\.', '', ip_end)
         # For now we only generate the last octect in an IPv4 address.
@@ -101,8 +101,12 @@ class KVMInstall(object):
                             'to generate a new mac address: ' + str(e))
 
         # Then find an IP address in range that doesn't already exist
+        ip_addresses = self.funcs.get_ip_addresses(self.config)
+        if 'ipaddress' in self.config:
+            if self.config['ipaddress'] not in ip_addresses:
+                range_floor, range_ceiling = self.funcs.get_ip_range(self.config)
+                # TODO: left off here
         try:
-            ip_addresses = self.funcs.get_ip_addresses(self.config)
             new_ip = ''
             good_ip = False
             while good_ip is False:
@@ -291,35 +295,3 @@ class KVMInstall(object):
         except Exception, e:
             raise Exception('virt-install failed: ' + str(e))
 
-# if __name__ == "__main__":
-    # # Note that we want all of the arguments to be parsed as Strings.
-    # # This makes building the virsh and virt-install commands easier.
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('-c', '--clone',
-    #                     help='name of the source logical volume to be cloned')
-    # parser.add_argument('-i', '--image',
-    #                     help='image file to duplicate')
-    # parser.add_argument('-v', '--vcpus',
-    #                     help='number of virtual CPUs')
-    # parser.add_argument('-r', '--ram',
-    #                     help='amount of RAM in MB')
-    # parser.add_argument('-d', '--disk',
-    #                     help='disk size in GB')
-    # parser.add_argument('-D', '--domain',
-    #                     help='domainname for dhcp / dnsmasq')
-    # parser.add_argument('-N', '--network',
-    #                     help='libvirt network')
-    # parser.add_argument('--type',
-    #                     help='os type, i.e., linux')
-    # parser.add_argument('--variant',
-    #                     help='os variant, i.e., rhel7')
-    # parser.add_argument('-f', '--configfile',
-    #                     help='specify an alternate config file, ' +
-    #                          'default=~/.config/kvminstall/config.yaml')
-    # parser.add_argument('--verbose', dest='verbose', action='store_true',
-    #                     help='verbose output')
-    # parser.add_argument('name',
-    #                     help='name of the new virtual machine')
-    # parser.set_defaults(verbose=False)
-
-    # KVMInstall()

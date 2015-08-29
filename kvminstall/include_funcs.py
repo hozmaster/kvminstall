@@ -90,7 +90,6 @@ class KVMInstallFuncs(object):
         for k in args.__dict__:
             if args.__dict__[k] is not None:
                 config[k] = args.__dict__[k]
-			
 
         return config
 
@@ -138,8 +137,8 @@ class KVMInstallFuncs(object):
     def get_ip_addresses(self, config):
         return self.get_etree_elements(config['virsh_netdumpxml'], 'ip')
 
-    def get_ip_range(self, xmlfile):
-        tree = ET.parse(xmlfile)
+    def get_ip_range(self, config):
+        tree = ET.parse(config['virsh_netdumpxml'])
         root = tree.getroot()
         start = root.find('ip').find('dhcp').find('range').get('start')
         end = root.find('ip').find('dhcp').find('range').get('end')
