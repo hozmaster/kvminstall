@@ -59,6 +59,7 @@ class KVMInstall(object):
             # This is a little big funky. I wanted to be sure we have only
             # a-f,0-9, but the string.hexdigits string includes a-f,A-F,
             # so we have to convert to lower case and strip out duplicates
+            # which we do by adding them to a set.
             domain = ''.join(set(string.hexdigits.lower()))
             new_hex = self.funcs.get_random(domain, 2)
             generated_mac = generated_mac.join(':' + new_hex)
