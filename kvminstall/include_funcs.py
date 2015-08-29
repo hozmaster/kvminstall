@@ -145,6 +145,9 @@ class KVMInstallFuncs(object):
         return [start, end]
 
     def update_etchosts(self, config, action):
+        # TODO since we're overwriting a file, we need to put locking and / or
+        # backup logic in just in case we run more than one kvminstall
+        # at a time
         if action == 'add':
             try:
                 etchosts = open('/etc/hosts', 'r+')
