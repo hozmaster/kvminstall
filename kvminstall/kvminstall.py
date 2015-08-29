@@ -147,7 +147,6 @@ class KVMInstall(object):
         except Exception, e:
             raise Exception('virsh net-update --current failed: ' + str(e))
 
-
         # First, update the persistent config
         try:
             config_command.append('--config')
@@ -178,7 +177,6 @@ class KVMInstall(object):
             self.funcs.run_command(current_command, self.config)
         except Exception, e:
             raise Exception('virsh net-update --current failed: ' + str(e))
-
 
         # First, update the persistent config
         try:
