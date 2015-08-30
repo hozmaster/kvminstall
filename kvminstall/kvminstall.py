@@ -144,7 +144,6 @@ class KVMInstall(object):
         except Exception, e:
             raise Exception('virsh net-update --current failed: ' + str(e))
 
-
         # First, update the persistent config
         try:
             config_command.append('--config')
@@ -175,7 +174,6 @@ class KVMInstall(object):
             self.funcs.run_command(current_command, self.config)
         except Exception, e:
             raise Exception('virsh net-update --current failed: ' + str(e))
-
 
         # First, update the persistent config
         try:
@@ -214,7 +212,9 @@ class KVMInstall(object):
 
         # TODO: verify that we're running as root.
 
-        # Save relative path to module
+        # Save relative path to module.
+        # This is necessary because we don't know where the site-packages
+        # directory will live, so we have to determine that at runtime.
         package_directory = os.path.dirname(os.path.abspath(__file__))
 
         # Load include_vars and funcs.
@@ -292,35 +292,3 @@ class KVMInstall(object):
         except Exception, e:
             raise Exception('virt-install failed: ' + str(e))
 
-# if __name__ == "__main__":
-    # # Note that we want all of the arguments to be parsed as Strings.
-    # # This makes building the virsh and virt-install commands easier.
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('-c', '--clone',
-    #                     help='name of the source logical volume to be cloned')
-    # parser.add_argument('-i', '--image',
-    #                     help='image file to duplicate')
-    # parser.add_argument('-v', '--vcpus',
-    #                     help='number of virtual CPUs')
-    # parser.add_argument('-r', '--ram',
-    #                     help='amount of RAM in MB')
-    # parser.add_argument('-d', '--disk',
-    #                     help='disk size in GB')
-    # parser.add_argument('-D', '--domain',
-    #                     help='domainname for dhcp / dnsmasq')
-    # parser.add_argument('-N', '--network',
-    #                     help='libvirt network')
-    # parser.add_argument('--type',
-    #                     help='os type, i.e., linux')
-    # parser.add_argument('--variant',
-    #                     help='os variant, i.e., rhel7')
-    # parser.add_argument('-f', '--configfile',
-    #                     help='specify an alternate config file, ' +
-    #                          'default=~/.config/kvminstall/config.yaml')
-    # parser.add_argument('--verbose', dest='verbose', action='store_true',
-    #                     help='verbose output')
-    # parser.add_argument('name',
-    #                     help='name of the new virtual machine')
-    # parser.set_defaults(verbose=False)
-
-    # KVMInstall()
