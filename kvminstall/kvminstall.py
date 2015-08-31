@@ -51,6 +51,8 @@ class KVMInstall(object):
             raise e
 
     def generate_mac(self, prefix):
+        """Generate a unique MAC address."""
+
         generated_mac = ''
         # Determine how long our prefix is
         num_colons = prefix.count(':')
@@ -66,7 +68,9 @@ class KVMInstall(object):
         return self.config['mac'] + generated_mac
 
     def generate_ip(self):
-        # We don't want to gernate an IP outside the DHCP range in the virsh
+        """Generate a unique IP address within the virsh DHCP scope."""
+
+        # We don't want to generate an IP outside the DHCP range in the virsh
         # network.
         ip_start, ip_end = self.funcs.get_ip_range(self.config['virsh_netdumpxml'])
         start = re.sub('^\d{1,3}\.\d{1,3}\.\d{1,3}\.', '', ip_start)
@@ -77,7 +81,7 @@ class KVMInstall(object):
         return first_three_octets + '.' + str(random.randint(int(start), int(end)))
 
     def setup_network(self):
-        """Setup the virsh network settings for the VM"""
+        """Setup the virsh network settings for the VM."""
 
         # Dump the network config to an xml file for 1) easy parsing and
         # 2) backup just in case something goes sideways.
@@ -183,6 +187,8 @@ class KVMInstall(object):
             raise Exception('virsh net-update --config failed: ' + str(e))
 
     def do_virtinstall(self):
+        """Run the virt-install command, basically the last step."""
+
         network_string = 'network:' + self.config['network'] + ',' + \
             'model=virtio,mac=' + self.config['new_mac']
         command = ['virt-install',
