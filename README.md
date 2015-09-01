@@ -3,6 +3,12 @@ Python CLI helper for virt-install(1)
 
 ## Installation
 
+If you haven't already, install KVM.
+
+```
+yum groupinstall Virtualization
+```
+
 Use pip to install.
 
 ```
