@@ -64,7 +64,7 @@ class KVMInstall(object):
             generated_mac = generated_mac.join(':' + new_hex)
         return self.config['mac'] + generated_mac
 
-    def generate_ip(self):
+    def generate_ip(self, **kwargs):
         # We don't want to gernate an IP outside the DHCP range in the virsh
         # network.
         ip_start, ip_end = self.funcs.get_ip_range(self.config)
@@ -73,7 +73,10 @@ class KVMInstall(object):
         # For now we only generate the last octect in an IPv4 address.
         # TODO: add support for generating other octets
         first_three_octets = re.sub('\.\d{1,3}$', '', ip_start)
-        return first_three_octets + '.' + str(random.randint(int(start), int(end)))
+        if 'octet' in kwargs:
+            return first_three_octets + '.' + kwargs['octet']
+        else:
+            return first_three_octets + '.' + str(random.randint(int(start), int(end)))
 
     def setup_network(self):
         """Setup the virsh network settings for the VM"""
@@ -101,23 +104,27 @@ class KVMInstall(object):
                             'to generate a new mac address: ' + str(e))
 
         # Then find an IP address in range that doesn't already exist
+        new_ip = ''
         ip_addresses = self.funcs.get_ip_addresses(self.config)
         if 'ipaddress' in self.config:
             if self.config['ipaddress'] not in ip_addresses:
                 range_floor, range_ceiling = self.funcs.get_ip_range(self.config)
-                # TODO: left off here
-        try:
-            new_ip = ''
-            good_ip = False
-            while good_ip is False:
-                new_ip = self.generate_ip()
-                if new_ip not in ip_addresses:
-                    good_ip = True
-                    if self.config['verbose'] is True:
-                        print '  new ip found: ' + new_ip
-        except Exception, e:
-            raise Exception('setup_network failed ' +
-                            'to generate a new ip address: ' + str(e))
+                new_ip = self.generate_ip(octet=self.config['ipaddress'])
+            else:
+                raise Exception('setup_network failed, ip address not ' +
+                                'available' + self.config['ipaddress'])
+        else:
+            try:
+                good_ip = False
+                while good_ip is False:
+                    new_ip = self.generate_ip()
+                    if new_ip not in ip_addresses:
+                        good_ip = True
+                        if self.config['verbose'] is True:
+                            print '  new ip found: ' + new_ip
+            except Exception, e:
+                raise Exception('setup_network failed ' +
+                                'to generate a new ip address: ' + str(e))
 
         # Record the new IP for other functions' use
         self.config['new_ip'] = new_ip
