@@ -149,13 +149,14 @@ class KVMInstallFuncs(object):
     def get_ip_addresses(self, config):
         return self.get_etree_elements(config['virsh_netdumpxml'], 'ip')
 
-    def get_ip_range(self, xmlfile):
+    def get_ip_range(self, config):
         """Find the DHCP range in an XML file and return the floor and ceiling
         IP values."""
 
         # Note: currently only looks at the last octet, or class C addresses.
         # TODO add support for class A and B ranges.
-        tree = ET.parse(xmlfile)
+
+        tree = ET.parse(config['virsh_netdumpxml'])
         root = tree.getroot()
         start = root.find('ip').find('dhcp').find('range').get('start')
         end = root.find('ip').find('dhcp').find('range').get('end')
@@ -165,7 +166,10 @@ class KVMInstallFuncs(object):
         """Read /etc/hosts, truncate it, then re-write it with the new
         values."""
 
-        # TODO add locking.
+        # TODO since we're overwriting a file, we need to put locking and / or
+        # backup logic in just in case we run more than one kvminstall
+        # at a time
+
         if action == 'add':
             try:
                 etchosts = open('/etc/hosts', 'r+')
