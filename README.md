@@ -15,9 +15,9 @@ This will automatically install the utility into your PATH.
 
 ```
 usage: kvminstall [-h] [-c CLONE] [-i IMAGE] [-v VCPUS] [-r RAM] [-d DISK]
-                      [-D DOMAIN] [-N NETWORK] [--type TYPE]
-                      [--variant VARIANT] [-f CONFIGFILE]
-                      name
+                  [-D DOMAIN] [-N NETWORK] [-I IPADDRESS] [--type TYPE]
+                  [--variant VARIANT] [-f CONFIGFILE] [--verbose]
+                  name
 
 positional arguments:
   name                  name of the new virtual machine
@@ -36,11 +36,15 @@ optional arguments:
                         domainname for dhcp / dnsmasq
   -N NETWORK, --network NETWORK
                         libvirt network
+  -I IPADDRESS, --ipaddress IPADDRESS
+                        specify the 4th octet of the IP address
   --type TYPE           os type, i.e., linux
   --variant VARIANT     os variant, i.e., rhel7
   -f CONFIGFILE, --configfile CONFIGFILE
-                        specify an alternate config file, default=~/.config
-                        /kvm-install/config.yaml
+                        specify an alternate config file,
+                        default=~/.config/kvminstall/config.yaml
+  --verbose             verbose output
+
 ```
 
 ## Example
