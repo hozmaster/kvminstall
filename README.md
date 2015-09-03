@@ -36,6 +36,8 @@ optional arguments:
                         domainname for dhcp / dnsmasq
   -N NETWORK, --network NETWORK
                         libvirt network
+  -I IPADDRESS, --ipaddress IPADDRESS
+                        specify the 4th octet of the IP address
   --type TYPE           os type, i.e., linux
   --variant VARIANT     os variant, i.e., rhel7
   -f CONFIGFILE, --configfile CONFIGFILE
