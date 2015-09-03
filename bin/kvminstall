@@ -29,6 +29,8 @@ parser.add_argument('-D', '--domain',
                     help='domainname for dhcp / dnsmasq')
 parser.add_argument('-N', '--network',
                     help='libvirt network')
+parser.add_argument('-I', '--ipaddress',
+                    help='specify the 4th octet of the IP address')
 parser.add_argument('--type',
                     help='os type, i.e., linux')
 parser.add_argument('--variant',
