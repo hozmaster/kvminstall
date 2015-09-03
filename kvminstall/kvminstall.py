@@ -67,7 +67,9 @@ class KVMInstall(object):
             generated_mac = generated_mac.join(':' + new_hex)
         return self.config['mac'] + generated_mac
 
-    def generate_ip(self, **kwargs):
+    def generate_ip(self, **kwargs
+
+                    ):
         """Generate a unique IP address within the virsh DHCP scope."""
 
         # We don't want to generate an IP outside the DHCP range in the virsh
