@@ -51,4 +51,4 @@ Assume that you have a pre-built base image with an LVM backend in the libvirt_l
 kvminstall -c /dev/libvirt_lvm/rhel71base examplevm
 ```
 
-
+For a more complete example, see [this blog entry](https://blog.jasoncallaway.com/make-new-kvm-vms-in-less-than-10-seconds/).

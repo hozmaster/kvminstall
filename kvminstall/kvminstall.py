@@ -51,6 +51,8 @@ class KVMInstall(object):
             raise e
 
     def generate_mac(self, prefix):
+        """Generate a unique MAC address."""
+
         generated_mac = ''
         # Determine how long our prefix is
         num_colons = prefix.count(':')
@@ -59,13 +61,16 @@ class KVMInstall(object):
             # This is a little big funky. I wanted to be sure we have only
             # a-f,0-9, but the string.hexdigits string includes a-f,A-F,
             # so we have to convert to lower case and strip out duplicates
+            # which we do by adding them to a set.
             domain = ''.join(set(string.hexdigits.lower()))
             new_hex = self.funcs.get_random(domain, 2)
             generated_mac = generated_mac.join(':' + new_hex)
         return self.config['mac'] + generated_mac
 
     def generate_ip(self, **kwargs):
-        # We don't want to gernate an IP outside the DHCP range in the virsh
+        """Generate a unique IP address within the virsh DHCP scope."""
+
+        # We don't want to generate an IP outside the DHCP range in the virsh
         # network.
         ip_start, ip_end = self.funcs.get_ip_range(self.config)
         start = re.sub('^\d{1,3}\.\d{1,3}\.\d{1,3}\.', '', ip_start)
@@ -79,7 +84,7 @@ class KVMInstall(object):
             return first_three_octets + '.' + str(random.randint(int(start), int(end)))
 
     def setup_network(self):
-        """Setup the virsh network settings for the VM"""
+        """Setup the virsh network settings for the VM."""
 
         # Dump the network config to an xml file for 1) easy parsing and
         # 2) backup just in case something goes sideways.
@@ -193,6 +198,8 @@ class KVMInstall(object):
             raise Exception('virsh net-update --config failed: ' + str(e))
 
     def do_virtinstall(self):
+        """Run the virt-install command, basically the last step."""
+
         network_string = 'network:' + self.config['network'] + ',' + \
             'model=virtio,mac=' + self.config['new_mac']
         command = ['virt-install',
@@ -222,7 +229,9 @@ class KVMInstall(object):
 
         # TODO: verify that we're running as root.
 
-        # Save relative path to module
+        # Save relative path to module.
+        # This is necessary because we don't know where the site-packages
+        # directory will live, so we have to determine that at runtime.
         package_directory = os.path.dirname(os.path.abspath(__file__))
 
         # Load include_vars and funcs.

@@ -94,6 +94,9 @@ class KVMInstallFuncs(object):
         return config
 
     def run_command(self, command, config):
+        """Run a shell command and output STDOUT and STDERR to the files
+        defined in the config dict."""
+
         stdout = config['stdout']
         stderr = config['stderr']
         if config['verbose'] is True:
@@ -103,6 +106,9 @@ class KVMInstallFuncs(object):
         out = open(stdout, 'a')
         err = open(stderr, 'a')
         # In order to run with shell=True we have to pass subprocess a string.
+        # There's probably a cleaner way to do this, but when I first wrote
+        # this function I was using shell=False, which makes subprocess.call
+        # expect a list.
         # So we'll join the elements of the command List.
         exit_signal = subprocess.call(' '.join(command),
                                       stdout=out,
@@ -115,8 +121,12 @@ class KVMInstallFuncs(object):
         err.close()
 
     def net_dumpxml(self, config):
+        """Run a virsh net-dumpxml on the specified network."""
+
         network = config['network']
         xml = config['virsh_netdumpxml']
+        # This is ugly. We're using shell redirection to write the output
+        # to our xml file. Need to make this suck less.
         command = ['virsh', 'net-dumpxml', network, '>', xml]
         try:
             self.run_command(command, config)
@@ -124,6 +134,8 @@ class KVMInstallFuncs(object):
             raise e
 
     def get_etree_elements(self, xmlfile, element):
+        """Parse XML and return a list of elements."""
+
         tree = ET.parse(xmlfile)
         l = []
         for elem in tree.getiterator():
@@ -138,6 +150,12 @@ class KVMInstallFuncs(object):
         return self.get_etree_elements(config['virsh_netdumpxml'], 'ip')
 
     def get_ip_range(self, config):
+        """Find the DHCP range in an XML file and return the floor and ceiling
+        IP values."""
+
+        # Note: currently only looks at the last octet, or class C addresses.
+        # TODO add support for class A and B ranges.
+
         tree = ET.parse(config['virsh_netdumpxml'])
         root = tree.getroot()
         start = root.find('ip').find('dhcp').find('range').get('start')
@@ -145,9 +163,13 @@ class KVMInstallFuncs(object):
         return [start, end]
 
     def update_etchosts(self, config, action):
+        """Read /etc/hosts, truncate it, then re-write it with the new
+        values."""
+
         # TODO since we're overwriting a file, we need to put locking and / or
         # backup logic in just in case we run more than one kvminstall
         # at a time
+
         if action == 'add':
             try:
                 etchosts = open('/etc/hosts', 'r+')
@@ -164,6 +186,9 @@ class KVMInstallFuncs(object):
         # TODO: add delete action
 
     def restart_dnsmasq(self, config):
+        """Restart the dnsmasq service."""
+
+        # TODO currently only supports systemd, add upstart support
         command = ['systemctl', 'restart', 'dnsmasq.service']
         try:
             self.run_command(command, config)
