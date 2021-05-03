@@ -51,6 +51,22 @@ optional arguments:
                         /kvm-install/config.yaml
 ```
 
+In your .config directory, kvminstall sets up a yaml file with defaults. You can specify any of these interactively, or if you want to minimize typing, you can set these defaults in ~/.config/kvminstall/config:
+
+```	
+---
+vcpus: 1
+ram: 1024
+disk: 10
+domain: example.com
+network: default
+mac: 5c:e0:c5:c4:26
+type: linux
+variant: rhel7
+
+The MAC address can be specified as up to 5 :-delimited fields. If you want to specify fewer, kvminstall will auto-complete with random, available values.
+```
+
 ## Example
 
 Assume that you have a pre-built base image with an LVM backend in the libvirt_lvm VG.

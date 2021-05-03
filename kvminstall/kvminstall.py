@@ -30,7 +30,7 @@ class KVMInstall(object):
         command = ['lvcreate', '-s', from_lvm, '-L', size + 'G', '-n', name]
         try:
             self.funcs.run_command(command, self.config)
-        except Exception, e:
+        except Exception as e:
             raise e
 
     def setup_image(self):
@@ -47,7 +47,7 @@ class KVMInstall(object):
         command = ['cp', from_image, path + '/' + name + extension]
         try:
             self.funcs.run_command(command, self.config)
-        except Exception, e:
+        except Exception as e:
             raise e
 
     def generate_mac(self, prefix):
@@ -105,8 +105,8 @@ class KVMInstall(object):
                     good_mac = True
                     self.config['new_mac'] = new_mac
                     if self.config['verbose'] is True:
-                        print '  new mac found: ' + new_mac
-        except Exception, e:
+                        print('  new mac found: ' + new_mac)
+        except Exception as e:
             raise Exception('setup_network failed ' +
                             'to generate a new mac address: ' + str(e))
 
@@ -128,8 +128,8 @@ class KVMInstall(object):
                     if new_ip not in ip_addresses:
                         good_ip = True
                         if self.config['verbose'] is True:
-                            print '  new ip found: ' + new_ip
-            except Exception, e:
+                            print('  new ip found: ' + new_ip)
+            except Exception as e:
                 raise Exception('setup_network failed ' +
                                 'to generate a new ip address: ' + str(e))
 
@@ -158,14 +158,14 @@ class KVMInstall(object):
         try:
             current_command.append('--current')
             self.funcs.run_command(current_command, self.config)
-        except Exception, e:
+        except Exception as e:
             raise Exception('virsh net-update --current failed: ' + str(e))
 
         # First, update the persistent config
         try:
             config_command.append('--config')
             self.funcs.run_command(config_command, self.config)
-        except Exception, e:
+        except Exception as e:
             raise Exception('virsh net-update --config failed: ' + str(e))
 
         # Now do the same for DNS
@@ -189,21 +189,21 @@ class KVMInstall(object):
         try:
             current_command.append('--current')
             self.funcs.run_command(current_command, self.config)
-        except Exception, e:
+        except Exception as e:
             raise Exception('virsh net-update --current failed: ' + str(e))
 
         # First, update the persistent config
         try:
             config_command.append('--config')
             self.funcs.run_command(config_command, self.config)
-        except Exception, e:
+        except Exception as e:
             raise Exception('virsh net-update --config failed: ' + str(e))
 
     def do_virtinstall(self):
         """Run the virt-install command, basically the last step."""
 
         network_string = 'network:' + self.config['network'] + ',' + \
-            'model=virtio,mac=' + self.config['new_mac']
+                         'model=virtio,mac=' + self.config['new_mac']
         command = ['virt-install',
                    '--noautoconsole',
                    '--hvm',
@@ -220,10 +220,12 @@ class KVMInstall(object):
             install_command = command + ['--disk', 'path=' + devpath + '/' + self.config['name']]
         else:
             imgpath = os.path.split(self.config['image'])[0]
-            install_command = command + ['--disk', 'path=' + imgpath + '/' + self.config['name'] + '.img' + ',size=' + str(self.config['disk']) + ',format=qcow2']
+            install_command = command + ['--disk',
+                                         'path=' + imgpath + '/' + self.config['name'] + '.img' + ',size=' + str(
+                                             self.config['disk']) + ',format=qcow2']
         try:
             self.funcs.run_command(install_command, self.config)
-        except Exception, e:
+        except Exception as e:
             raise e
 
     def __init__(self, parsed_args):
@@ -252,7 +254,7 @@ class KVMInstall(object):
 
         # Parse the config file and build our config object
         if parsed_args.verbose is True:
-            print ' parsing config file'
+            print(' parsing config file')
         if parsed_args.configfile is None:
             parsed_args.configfile = self.vars['default_config']
         self.config = self.funcs.parse_config(parsed_args)
@@ -268,11 +270,11 @@ class KVMInstall(object):
         # If we have both a clone and image config directive, prefer LVM
         if 'clone' in self.config:
             if self.config['verbose'] is True:
-                print ' setting up lvm'
+                print(' setting up lvm')
             self.setup_lvm()
         else:
             if self.config['verbose'] is True:
-                print ' setting up image'
+                print(' setting up image')
             if 'image' in self.config:
                 self.setup_image()
             else:
@@ -282,32 +284,31 @@ class KVMInstall(object):
         # Now set up the new network
         try:
             if self.config['verbose'] is True:
-                print ' setting up network'
+                print(' setting up network')
             self.setup_network()
-        except Exception, e:
+        except Exception as e:
             raise Exception('setup network failed: ' + str(e))
 
         # Update /etc/hosts
         try:
             if self.config['verbose'] is True:
-                print ' updating /etc/hosts'
+                print(' updating /etc/hosts')
             self.funcs.update_etchosts(self.config, 'add')
-        except Exception, e:
+        except Exception as e:
             raise Exception('update /etc/hosts failed: ' + str(e))
 
         # Restart the dnsmasq service
         try:
             if self.config['verbose'] is True:
-                print ' restarting dnsmasq'
+                print(' restarting dnsmasq')
             self.funcs.restart_dnsmasq(self.config)
-        except Exception, e:
+        except Exception as e:
             raise Exception('restart dnsmasq failed: ' + str(e))
 
         # Finally, we can install the VM
         try:
             if self.config['verbose'] is True:
-                print ' doing virt-install'
+                print(' doing virt-install')
             self.do_virtinstall()
-        except Exception, e:
+        except Exception as e:
             raise Exception('virt-install failed: ' + str(e))
-
